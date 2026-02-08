@@ -34,7 +34,6 @@ import numpy as np
 import torch
 from isaacsim.core.api.robots.robot import Robot
 import isaacsim.core.utils.stage as stage_utils 
-import isaacsim.core.utils.xforms as xform_utils 
 import isaacsim.core.utils.nucleus as nucleus_utils
 
 from pxr import Gf
@@ -63,23 +62,10 @@ class G1Robot(Robot):
 
         g1_prim =stage_utils.add_reference_to_stage(self._usd_path, prim_path)
 
-        if translation is None:
-            translation = Gf.Vec3d(0.0, 0.0, 0.0)
-        else:
-            translation = Gf.Vec3d(translation)
-        if orientation is None:
-            orientation = Gf.Quatd(1.0, 0.0, 0.0, 0.0)
-        else:
-            orientation = Gf.Quatd(w=orientation[0], x=orientation[1], y=orientation[2], z=orientation[3])
-
-        print("translation: ", translation)
-        print("orientation: ", orientation)
-        xform_utils.reset_and_set_xform_ops(g1_prim, translation, orientation)
-
         super().__init__(
             prim_path=prim_path,
             name=name,
-            # translation=translation,
-            # orientation=orientation,
+            translation=translation,
+            orientation=orientation,
             articulation_controller=None,
         )
