@@ -105,6 +105,10 @@ class UIBuilder:
 
     def debug(self):
         print("Debug Button Pressed")
-        from .g1 import G1Robot
-        robot = G1Robot("/World/G1")
+        # from .g1 import G1Robot
+        # robot = G1Robot("/World/G1")
+
+        from .locomotion_task import G1LocomotionTask
+        task = G1LocomotionTask()
+        task.set_up_scene()
 
