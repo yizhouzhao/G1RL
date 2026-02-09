@@ -141,13 +141,20 @@ class G1LocomotionTask(LocomotionTask):
             self.initialize()
 
         self.articulation.post_reset()
-        
+    
     def get_observation(self):
+
+        root_velocities = self.articulation.get_velocities()
+        root_angular_velocities = root_velocities[:, 3:]
+        root_linear_velocities = root_velocities[:, :3]
+
         joint_positions = self.articulation.get_joint_positions(joint_indices=self.joint_ids)
         joint_velocities = self.articulation.get_joint_velocities(joint_indices=self.joint_ids)
         positions, orientations = self.articulation.get_local_poses()
 
         obs = {
+            "root_linear_velocities": root_linear_velocities,
+            "root_angular_velocities": root_angular_velocities,
             "joint_positions": joint_positions,
             "joint_velocities": joint_velocities,
             "positions": positions,

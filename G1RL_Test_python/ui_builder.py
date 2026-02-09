@@ -22,6 +22,7 @@ from isaacsim.core.utils.types import ArticulationAction
 from isaacsim.gui.components.element_wrappers import CollapsableFrame, DropDown, FloatField, TextBlock
 from isaacsim.gui.components.ui_utils import get_style
 
+from .locomotion_task import G1LocomotionTask
 
 class UIBuilder:
     def __init__(self):
@@ -35,6 +36,7 @@ class UIBuilder:
         self._timeline = omni.timeline.get_timeline_interface()
 
         # Run initialization for the provided example
+        self.task: G1LocomotionTask = None
         self._on_init()
 
     ###################################################################################
@@ -97,12 +99,29 @@ class UIBuilder:
 
         with selection_panel_frame:
             with ui.VStack(style=get_style(), spacing=5, height=0):
+                ui.Button("Load Policy Test", clicked_fn=self.load_policy)
                 ui.Spacer(height=5)
                 ui.Button("Setup Stage", clicked_fn=self.setup_stage)
                 ui.Button("Get Observation", clicked_fn=self.get_observation)
                 ui.Button("Reset", clicked_fn=self.reset_task)
+    
+    def load_policy(self):
+        print("Load Policy")
+        import torch
+        POLICY_PATH = "/home/linfan/Projects/WBC-AGILE/agile/data/policy/velocity_g1/unitree_g1_velocity_history.pt"
+        self.policy = torch.jit.load(POLICY_PATH, map_location="cuda")
+        print("Policy loaded")
+        print("[UIBuilder] policy", self.policy)
+        for name, param in self.policy.named_parameters():
+            print(f"{name:40s} {list(param.shape)}")
 
+        obs = torch.zeros(1, 255).to("cuda")  # batch of 1, 255-dim input
+        with torch.no_grad():
+            action = self.policy(obs)   # or policy.actor(obs), depending on the forward()
+        print("[UIBuilder] action", action)
 
+        del self.policy
+        torch.cuda.empty_cache()
     ######################################################################################
     # Functions Below This Point Support The Provided Example And Can Be Replaced/Deleted
     ######################################################################################
@@ -115,8 +134,7 @@ class UIBuilder:
         # from .g1 import G1Robot
         # robot = G1Robot("/World/G1")
 
-        from .locomotion_task import G1LocomotionTask
-        self.task: G1LocomotionTask = G1LocomotionTask()
+        self.task = G1LocomotionTask()
         self.task.set_up_scene()
 
 
