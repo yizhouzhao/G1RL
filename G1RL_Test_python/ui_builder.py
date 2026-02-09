@@ -56,7 +56,12 @@ class UIBuilder:
         Args:
             step (float): Size of physics step
         """
-        pass
+        # print("on_physics_step", step)
+        if self.task is not None:
+            if not self.task.initialized:
+                self.task.initialize()
+                print("[UIBuilder] task initialized")
+
 
     def on_stage_event(self, event):
         """Callback for Stage Events
@@ -93,7 +98,9 @@ class UIBuilder:
         with selection_panel_frame:
             with ui.VStack(style=get_style(), spacing=5, height=0):
                 ui.Spacer(height=5)
-                ui.Button("Debgug Button", clicked_fn=self.debug)
+                ui.Button("Setup Stage", clicked_fn=self.setup_stage)
+                ui.Button("Get Observation", clicked_fn=self.get_observation)
+                ui.Button("Reset", clicked_fn=self.reset_task)
 
 
     ######################################################################################
@@ -101,14 +108,25 @@ class UIBuilder:
     ######################################################################################
 
     def _on_init(self):
-        self.articulation = None
+        self.task = None
 
-    def debug(self):
-        print("Debug Button Pressed")
+    def setup_stage(self):
+        print("Setup Stage")
         # from .g1 import G1Robot
         # robot = G1Robot("/World/G1")
 
         from .locomotion_task import G1LocomotionTask
-        task = G1LocomotionTask()
-        task.set_up_scene()
+        self.task: G1LocomotionTask = G1LocomotionTask()
+        self.task.set_up_scene()
 
+
+    def get_observation(self):
+        print("Get Observation")
+        if self.task is not None and self.task.initialized:
+            obs = self.task.get_observation()
+            print("[UIBuilder] obs", obs)
+
+    def reset_task(self):
+        print("reset task")
+        if self.task is not None and self.task.initialized:
+            self.task.reset()
