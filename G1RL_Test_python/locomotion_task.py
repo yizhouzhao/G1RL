@@ -9,6 +9,9 @@ from isaacsim.core.cloner import Cloner, GridCloner
 import isaacsim.core.utils.xforms as xform_utils 
 from isaacsim.core.prims import Articulation
 
+from .utils.math_utils import quat_apply_inverse
+from .utils.circular_buffer import CircularBuffer
+
 class LocomotionTask:
     def __init__(self):
         pass
@@ -46,6 +49,8 @@ class G1LocomotionTask(LocomotionTask):
         self._env_spacing = 4.0
         self.articulation = None
         self.initialized = False
+        gravity_dir = torch.tensor([0.0, 0.0, -0.981])
+        self.gravity_vec_w = gravity_dir.repeat(self._num_envs, 1)
         
         # action scale and offset
         self.action_scale = 0.5
@@ -53,6 +58,15 @@ class G1LocomotionTask(LocomotionTask):
         self.joint_ids = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 17, 18]
         self.joint_names = ['left_hip_pitch_joint', 'right_hip_pitch_joint', 'left_hip_roll_joint', 'right_hip_roll_joint', 'waist_roll_joint', 'left_hip_yaw_joint', 'right_hip_yaw_joint', 'waist_pitch_joint', 'left_knee_joint', 'right_knee_joint', 'left_ankle_pitch_joint', 'right_ankle_pitch_joint', 'left_ankle_roll_joint', 'right_ankle_roll_joint']
 
+        # history buffer
+        self.history_buffer = {
+            "base_ang_vel": CircularBuffer(max_len=5, batch_size=self._num_envs, device="cuda"),
+            "projected_gravity": CircularBuffer(max_len=5, batch_size=self._num_envs, device="cuda"),
+            "velocity_commands": CircularBuffer(max_len=5, batch_size=self._num_envs, device="cuda"),
+            "joint_vel": CircularBuffer(max_len=5, batch_size=self._num_envs, device="cuda"),
+            "joint_pos": CircularBuffer(max_len=5, batch_size=self._num_envs, device="cuda"),
+            "actions": CircularBuffer(max_len=5, batch_size=self._num_envs, device="cuda"),
+        } 
 
     def reset(self):
         pass
@@ -151,16 +165,30 @@ class G1LocomotionTask(LocomotionTask):
         joint_positions = self.articulation.get_joint_positions(joint_indices=self.joint_ids)
         joint_velocities = self.articulation.get_joint_velocities(joint_indices=self.joint_ids)
         positions, orientations = self.articulation.get_local_poses()
+        world_pos, world_orient = self.articulation.get_world_poses()
+
+        projected_gravity_b = quat_apply_inverse(torch.Tensor(world_orient), self.gravity_vec_w)
+
+        root_com_ang_vel_b = quat_apply_inverse(torch.Tensor(world_orient), torch.Tensor(root_angular_velocities))
 
         obs = {
-            "root_linear_velocities": root_linear_velocities,
-            "root_angular_velocities": root_angular_velocities,
-            "joint_positions": joint_positions,
-            "joint_velocities": joint_velocities,
-            "positions": positions,
-            "orientations": orientations
+            # "root_linear_velocities": root_linear_velocities,
+            # "root_angular_velocities": root_angular_velocities,
+            # "joint_positions": joint_positions,
+            # "joint_velocities": joint_velocities,
+            # "positions": positions,
+            # "orientations": orientations,
+            "projected_gravity_b": projected_gravity_b,
+            "root_com_ang_vel_b": root_com_ang_vel_b
         }
 
         print("[G1LocomotionTask] obs", obs)
         return obs
+
+
+    def get_reward(self):
+        pass
+
+    def is_done(self):
+        pass
         
